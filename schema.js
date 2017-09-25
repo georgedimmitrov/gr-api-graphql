@@ -9,6 +9,25 @@ const {
   GraphQLList
 } = require('graphql');
 
+function translate(lang, str) {
+  const apiKey = 'gottahavebillingaccount';
+  const url = 'https://www.googleapis.com' +
+    '/language/translate/v2' +
+    '/?key=' + apiKey +
+    '&source=en' +
+    '&target=' + lang +
+    '&q=' + encodeURIComponent(str);
+
+  return fetch(url)
+    .then(response => response.json())
+    .then(parsedResponse =>
+      parsedResponse
+        .data
+        .translations[0]
+        .translatedText
+      )
+}
+
 const config = require('./config/secret');
 
 const BookType = new GraphQLObjectType({
@@ -17,7 +36,13 @@ const BookType = new GraphQLObjectType({
   fields: () => ({
     title: {
       type: GraphQLString,
-      resolve: xml => xml.GoodreadsResponse.book[0].title[0]
+      args: {
+        lang: { type: GraphQLString }
+      },
+      resolve: (xml, args) => {
+        const title = xml.GoodreadsResponse.book[0].title[0];
+        return args.lang ? translate(args.lang, title) : title;
+      }
     },
     isbn: {
       type: GraphQLString,
